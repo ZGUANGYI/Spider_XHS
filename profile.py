@@ -42,7 +42,6 @@ class Profile:
 if __name__ == '__main__':
     profile = Profile()
     user_url_list = [
-        'https://www.xiaohongshu.com/user/profile/59d44fd66eea883eff45747f',
-        'https://www.xiaohongshu.com/user/profile/6185ce66000000001000705b',
+        'https://www.xiaohongshu.com/user/profile/631150fe000000000f004a2b'
     ]
     profile.main(user_url_list)

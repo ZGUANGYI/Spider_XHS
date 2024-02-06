@@ -1,5 +1,5 @@
 import requests
-
+import pandas as pd
 from one import OneNote
 from profile import Profile
 from xhs_utils.xhs_util import get_headers, get_params, js, check_cookies
@@ -52,6 +52,7 @@ class Home:
         self.params['user_id'] = user_id
         self.params['cursor'] = cursor
         index = 0
+        one_user_note_list = pd.DataFrame(columns=['note_id','title','content','pic_url_lsit','publish_time','ip_location','type', 'video_url', 'video_cover_url', 'note_url', 'user_id','nickname'])
         while True:
             api = f"/api/sns/web/v1/user_posted?num=30&cursor={cursor}&user_id={user_id}&image_scenes="
             ret = js.call('get_xs', api, '', self.cookies['a1'])
@@ -64,13 +65,21 @@ class Home:
                 break
             cursor, has_more, note_list = data["cursor"], data["has_more"], data["notes"]
             self.params['cursor'] = cursor
-            for note in note_list:
-                index += 1
-                info = f'第{index}个笔记, '
-                self.oneNote.save_one_note_info(self.oneNote.detail_url + note['note_id'], need_cover, info)
-            if not has_more:
-                break
+            try:
+                for one_note in note_list:
+                    if index >=1000:
+                        return one_user_note_list;
+                    index += 1
+                    info = f'第{index}个笔记, '
+                    note, series = self.oneNote.save_one_note_info(self.oneNote.detail_url + one_note['note_id'], need_cover, info)
+                    if series is not None:
+                        one_user_note_list.loc[len(one_user_note_list)] = series;
+                if not has_more:
+                    break
+            except:
+                return one_user_note_list;
         print(f'用户 {profile.nickname} 全部视频信息保存成功')
+        return one_user_note_list;
 
 
     def main(self, url_list):
@@ -78,18 +87,21 @@ class Home:
         #     'https://www.xiaohongshu.com/user/profile/6185ce66000000001000705b',
         #     'https://www.xiaohongshu.com/user/profile/6034d6f20000000001006fbb',
         # ]
+        all_note = pd.DataFrame(columns=['note_id','title','content','pic_url_lsit','publish_time','ip_location','type', 'video_url', 'video_cover_url', 'note_url', 'user_id','nickname'])
         for url in url_list:
             try:
-                self.save_all_note_info(url)
+                one_user_note_list = self.save_all_note_info(url)
+                all_note = all_note._append(one_user_note_list, ignore_index=True)
             except:
                 print(f'用户 {url} 查询失败')
+        all_note.to_csv('all_note.csv', encoding='utf-8-sig', sep=",")
 
 
 if __name__ == '__main__':
     home = Home()
-    url_list = [
-        'https://www.xiaohongshu.com/user/profile/6185ce66000000001000705b',
-        'https://www.xiaohongshu.com/user/profile/6034d6f20000000001006fbb',
-    ]
+    url_list = []
+    with open ('./static/profile_url.txt') as f:
+        for line in f.readlines():
+            url_list.append(line.strip())
     home.main(url_list)
 
